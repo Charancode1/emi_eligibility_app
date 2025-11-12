@@ -2,72 +2,64 @@ import streamlit as st
 import pandas as pd
 import joblib
 
-# -----------------------------
-# Load Models
-# -----------------------------
+# -------------------------------
+# Load the trained model
+# -------------------------------
 @st.cache_resource
-def load_models():
-    models = {
-        "Logistic Regression": joblib.load("models/best_log_reg_model.pkl"),
-        "Random Forest": joblib.load("models/best_rf_classifier.pkl"),
-        "XGBoost": joblib.load("models/best_xgb_classifier.pkl")
-    }
-    return models
+def load_model():
+    model = joblib.load("best_xgb_classifier.pkl")
+    return model
 
-models = load_models()
+model = load_model()
 
-# -----------------------------
+# -------------------------------
 # Streamlit App UI
-# -----------------------------
-st.set_page_config(page_title="EMI Eligibility Prediction App", layout="centered")
+# -------------------------------
+st.set_page_config(page_title="EMI Eligibility Prediction", layout="centered")
+st.title("💰 EMI Eligibility Prediction App")
+st.markdown("### Predict whether a person is Eligible, Not Eligible, or High Risk for EMI approval.")
 
-st.title("🏦 EMI Eligibility Prediction Dashboard")
-st.write("Upload your financial data or enter manually to predict EMI eligibility.")
+# -------------------------------
+# User input section
+# -------------------------------
+st.sidebar.header("Input Applicant Details")
 
-# -----------------------------
-# Sidebar model selection
-# -----------------------------
-model_choice = st.sidebar.selectbox(
-    "Select Model",
-    ["Logistic Regression", "Random Forest", "XGBoost"]
-)
+def user_input_features():
+    gender = st.sidebar.selectbox("Gender", ("male", "female"))
+    age = st.sidebar.slider("Age", 18, 70, 30)
+    income = st.sidebar.number_input("Monthly Income (₹)", min_value=1000, step=500)
+    loan_amount = st.sidebar.number_input("Loan Amount (₹)", min_value=1000, step=500)
+    tenure = st.sidebar.slider("Loan Tenure (months)", 6, 84, 12)
+    credit_score = st.sidebar.slider("Credit Score", 300, 900, 700)
+    existing_loans = st.sidebar.slider("Existing Loans", 0, 10, 1)
 
-st.sidebar.info(f"Using: **{model_choice}** for prediction")
+    data = {
+        "gender": gender,
+        "age": age,
+        "income": income,
+        "loan_amount": loan_amount,
+        "tenure": tenure,
+        "credit_score": credit_score,
+        "existing_loans": existing_loans
+    }
+    return pd.DataFrame(data, index=[0])
 
-# -----------------------------
-# Data Input Section
-# -----------------------------
-st.subheader("📋 Enter Applicant Details")
+input_df = user_input_features()
 
-# Example inputs (customize according to your dataset)
-gender = st.selectbox("Gender", ["male", "female"])
-age = st.number_input("Age", min_value=18, max_value=80, value=30)
-income = st.number_input("Monthly Income (₹)", min_value=1000, value=50000)
-expenses = st.number_input("Monthly Expenses (₹)", min_value=0, value=15000)
-existing_loans = st.number_input("Existing Loan Amount (₹)", min_value=0, value=20000)
-credit_score = st.slider("Credit Score", min_value=300, max_value=900, value=700)
-employment_type = st.selectbox("Employment Type", ["salaried", "self-employed", "unemployed"])
+st.subheader("Applicant Input Data")
+st.write(input_df)
 
-# -----------------------------
-# Prepare Input for Prediction
-# -----------------------------
-input_data = pd.DataFrame([{
-    "gender": gender,
-    "age": age,
-    "income": income,
-    "expenses": expenses,
-    "existing_loans": existing_loans,
-    "credit_score": credit_score,
-    "employment_type": employment_type
-}])
-
-# -----------------------------
-# Predict Button
-# -----------------------------
-if st.button("🔍 Predict EMI Eligibility"):
-    model = models[model_choice]
+# -------------------------------
+# Prediction
+# -------------------------------
+if st.button("Predict Eligibility"):
     try:
-        prediction = model.predict(input_data)[0]
+        prediction = model.predict(input_df)[0]
         st.success(f"✅ Predicted EMI Eligibility: **{prediction}**")
     except Exception as e:
-        st.error(f"⚠️ Prediction failed: {e}")
+        st.error(f"⚠️ Error making prediction: {e}")
+
+st.markdown("---")
+st.caption("Built with ❤️ using Streamlit and XGBoost")
+
+
